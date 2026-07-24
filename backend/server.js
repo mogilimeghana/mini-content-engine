@@ -23,16 +23,39 @@ const generateRoutes = require("./routes/generateRoutes");
 app.use("/", healthRoutes);
 app.use("/", generateRoutes);
 
+// Create jobs table if it doesn't exist
+async function createJobsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id UUID PRIMARY KEY,
+        prompt TEXT NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        image_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    console.log("✅ Jobs table is ready");
+  } catch (err) {
+    console.error("❌ Failed to create jobs table");
+    console.error(err);
+  }
+}
+
 // Database Connection
 pool.connect()
-  .then(client => {
+  .then(async (client) => {
     console.log("✅ Connected to PostgreSQL");
     client.release();
+
+    // Create table after successful connection
+    await createJobsTable();
   })
-.catch(err => {
-  console.error("❌ Database Connection Failed:");
-  console.error(err);
-});
+  .catch(err => {
+    console.error("❌ Database Connection Failed:");
+    console.error(err);
+  });
 
 // Start Server
 app.listen(PORT, () => {
