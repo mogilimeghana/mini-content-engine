@@ -2,14 +2,26 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
-const API_URL = "https://mini-content-engine-9c4z.onrender.com";
+const API_URL = "http://localhost:5000";
+
+// Handles both local and external image URLs
+const getImageUrl = (url) => {
+  if (!url) return "";
+
+  return url.startsWith("http")
+    ? url
+    : `${API_URL}${url}`;
+};
 
 function App() {
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
+  const [productImage, setProductImage] = useState(null);
+
   const [jobId, setJobId] = useState("");
   const [status, setStatus] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+
   const [jobs, setJobs] = useState([]);
 
   // Fetch all jobs
@@ -29,16 +41,31 @@ function App() {
 
   // Generate content
   const generateContent = async () => {
-    if (!productName.trim() || !description.trim()) {
-      alert("Please enter both Product Name and Product Description.");
+    if (
+      !productName.trim() ||
+      !description.trim() ||
+      !productImage
+    ) {
+      alert("Please enter Product Name, Description and Product Image.");
       return;
     }
 
     try {
-      const response = await axios.post(`${API_URL}/generate`, {
-        productName,
-        description,
-      });
+      const formData = new FormData();
+
+      formData.append("productName", productName);
+      formData.append("description", description);
+      formData.append("productImage", productImage);
+
+      const response = await axios.post(
+        `${API_URL}/generate`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       const id = response.data.jobId;
 
@@ -48,8 +75,9 @@ function App() {
 
       setProductName("");
       setDescription("");
+      setProductImage(null);
 
-      // Poll job status every 2 seconds
+      // Poll every 2 seconds
       const interval = setInterval(async () => {
         try {
           const jobResponse = await axios.get(`${API_URL}/jobs/${id}`);
@@ -78,6 +106,7 @@ function App() {
         <h1>Mini Content Engine</h1>
 
         <label htmlFor="productName">Product Name</label>
+
         <input
           type="text"
           id="productName"
@@ -87,15 +116,27 @@ function App() {
         />
 
         <label htmlFor="description">Product Description</label>
+
         <textarea
           id="description"
           rows="5"
           placeholder="Enter product description..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-        ></textarea>
+        />
 
-        <button onClick={generateContent}>Generate</button>
+        <label htmlFor="productImage">Product Image</label>
+
+        <input
+          type="file"
+          id="productImage"
+          accept="image/*"
+          onChange={(e) => setProductImage(e.target.files[0])}
+        />
+
+        <button onClick={generateContent}>
+          Generate
+        </button>
 
         <div className="result">
           <p>
@@ -112,10 +153,13 @@ function App() {
 
           {imageUrl && (
             <img
-              src={`${API_URL}${imageUrl}`}
+              src={getImageUrl(imageUrl)}
               alt="Generated"
               width="300"
-              style={{ marginTop: "10px", borderRadius: "8px" }}
+              style={{
+                marginTop: "10px",
+                borderRadius: "8px",
+              }}
             />
           )}
         </div>
@@ -148,13 +192,19 @@ function App() {
               jobs.map((job) => (
                 <tr key={job.id}>
                   <td>{job.id.slice(0, 8)}...</td>
+
                   <td>{job.prompt}</td>
+
                   <td>{job.status}</td>
-                  <td>{new Date(job.created_at).toLocaleString()}</td>
+
+                  <td>
+                    {new Date(job.created_at).toLocaleString()}
+                  </td>
+
                   <td>
                     {job.image_url ? (
                       <a
-                        href={`${API_URL}${job.image_url}`}
+                        href={getImageUrl(job.image_url)}
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -168,7 +218,10 @@ function App() {
               ))
             ) : (
               <tr>
-                <td colSpan="5" style={{ textAlign: "center" }}>
+                <td
+                  colSpan="5"
+                  style={{ textAlign: "center" }}
+                >
                   No jobs found.
                 </td>
               </tr>

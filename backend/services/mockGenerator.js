@@ -1,35 +1,55 @@
 const pool = require("../config/db");
+const generateImage = require("./imageGenerator");
 
-const mockImageGeneration = (jobId) => {
+const fs = require("fs");
+const path = require("path");
 
-    setTimeout(async () => {
+const mockImageGeneration = async (jobId, prompt) => {
+  try {
+    // Generate image bytes from Hugging Face
+    const imageBuffer = await generateImage(prompt);
 
-        try {
+    if (!imageBuffer) {
+      throw new Error("Image generation failed.");
+    }
 
-            await pool.query(
-                `UPDATE jobs
-                 SET status = $1,
-                     image_url = $2
-                 WHERE id = $3`,
-                [
-                    "completed",
-                    "/uploads/sample.png",
-                    jobId
-                ]
-            );
+    // Ensure uploads folder exists
+    const uploadDir = path.join(__dirname, "..", "uploads");
 
-            console.log(`✅ Job ${jobId} completed`);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
-        } catch (error) {
+    // Create image filename
+    const fileName = `generated-${jobId}.png`;
 
-            console.error("Mock generation failed:", error);
+    const filePath = path.join(uploadDir, fileName);
 
-        }
+    // Save image
+    fs.writeFileSync(filePath, imageBuffer);
 
-    }, 3000);
+    // Path to store in database
+    const imageUrl = `/uploads/${fileName}`;
 
+    // Update database
+    await pool.query(
+      `UPDATE jobs
+       SET status = $1,
+           image_url = $2
+       WHERE id = $3`,
+      [
+        "completed",
+        imageUrl,
+        jobId
+      ]
+    );
+
+    console.log(`✅ Job ${jobId} completed`);
+  } catch (error) {
+    console.error("Image generation failed:", error.message);
+  }
 };
 
 module.exports = {
-    mockImageGeneration
+  mockImageGeneration
 };

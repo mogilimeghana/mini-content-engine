@@ -27,13 +27,23 @@ app.use("/", generateRoutes);
 async function createJobsTable() {
   try {
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS jobs (
-        id UUID PRIMARY KEY,
-        prompt TEXT NOT NULL,
-        status VARCHAR(20) NOT NULL,
-        image_url TEXT,
+     CREATE TABLE IF NOT EXISTS jobs (
+    id UUID PRIMARY KEY,
+
+    product_name TEXT NOT NULL,
+
+    description TEXT NOT NULL,
+
+    reference_image TEXT,
+
+    prompt TEXT NOT NULL,
+
+      status VARCHAR(20) NOT NULL,
+
+       image_url TEXT,
+
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+       );
     `);
 
     console.log("✅ Jobs table is ready");

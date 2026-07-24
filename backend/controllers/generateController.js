@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../config/db");
 const { mockImageGeneration } = require("../services/mockGenerator");
-
+const generatePrompt = require("../services/promptGenerator");
 // POST /generate
 const generateContent = async (req, res) => {
 
@@ -9,26 +9,53 @@ const generateContent = async (req, res) => {
 
         const { productName, description } = req.body;
 
+        const referenceImage = req.file
+    ? `/uploads/${req.file.filename}`
+    : null;
+
         if (!productName || !description) {
     return res.status(400).json({
         message: "Product name and description are required."
     });
 }
 
-const prompt = `${productName}. ${description}`;
+const prompt = await generatePrompt(productName, description);
 
         const jobId = uuidv4();
 
         const status = "processing";
 
-        await pool.query(
-            `INSERT INTO jobs (id, prompt, status)
-             VALUES ($1, $2, $3)`,
-            [jobId, prompt, status]
-        );
+     await pool.query(
+    `INSERT INTO jobs
+    (
+        id,
+        product_name,
+        description,
+        reference_image,
+        prompt,
+        status
+    )
+    VALUES
+    (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+    )`,
+    [
+        jobId,
+        productName,
+        description,
+        referenceImage,
+        prompt,
+        status
+    ]
+);
 
         // Start background mock generation
-        mockImageGeneration(jobId);
+       mockImageGeneration(jobId, prompt);
 
         res.status(201).json({
             jobId,
