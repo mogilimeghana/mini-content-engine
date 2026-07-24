@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
-const API_URL = "http://localhost:5000";
-
+const API_URL = "https://mini-content-engine-9c4z.onrender.com";
 // Handles both local and external image URLs
 const getImageUrl = (url) => {
   if (!url) return "";
