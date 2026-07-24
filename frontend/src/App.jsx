@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
+const API_URL = "https://mini-content-engine-9c4z.onrender.com";
+
 function App() {
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
@@ -13,7 +15,7 @@ function App() {
   // Fetch all jobs
   const fetchJobs = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/jobs");
+      const response = await axios.get(`${API_URL}/jobs`);
       setJobs(response.data);
     } catch (error) {
       console.error(error);
@@ -33,7 +35,7 @@ function App() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/generate", {
+      const response = await axios.post(`${API_URL}/generate`, {
         productName,
         description,
       });
@@ -50,15 +52,13 @@ function App() {
       // Poll job status every 2 seconds
       const interval = setInterval(async () => {
         try {
-          const jobResponse = await axios.get(
-            `http://localhost:5000/jobs/${id}`
-          );
+          const jobResponse = await axios.get(`${API_URL}/jobs/${id}`);
 
           setStatus(jobResponse.data.status);
 
           if (jobResponse.data.status === "completed") {
             setImageUrl(jobResponse.data.imageUrl);
-            fetchJobs(); // Refresh jobs list
+            fetchJobs();
             clearInterval(interval);
           }
         } catch (error) {
@@ -112,7 +112,7 @@ function App() {
 
           {imageUrl && (
             <img
-              src={`http://localhost:5000${imageUrl}`}
+              src={`${API_URL}${imageUrl}`}
               alt="Generated"
               width="300"
               style={{ marginTop: "10px", borderRadius: "8px" }}
@@ -154,7 +154,7 @@ function App() {
                   <td>
                     {job.image_url ? (
                       <a
-                        href={`http://localhost:5000${job.image_url}`}
+                        href={`${API_URL}${job.image_url}`}
                         target="_blank"
                         rel="noreferrer"
                       >
